@@ -2,6 +2,9 @@
 
 import sys
 import struct
+import time
+import datetime
+import binascii
 
 
 # You can use this method to exit on failure conditions.
@@ -25,6 +28,14 @@ with open(sys.argv[1], 'rb') as fpff:
 # Hint: you might find it easier to use an index/offset variable than
 # hardcoding ranges like 0:8
 magic, version = struct.unpack("<LL", data[0:8])
+bin_timestamp = struct.unpack("<L", data[8:12])
+bin_author = struct.unpack("<Q", data[12:20])
+sectioncount = struct.unpack("<L", data[20:24])
+
+timestamp = datetime.datetime.fromtimestamp(bin_timestamp[0])
+author = binascii.b2a_uu(str(bin_author[0])).decode('ascii')
+
+
 
 if magic != MAGIC:
     bork("Bad magic! Got %s, expected %s" % (hex(magic), hex(MAGIC)))
@@ -35,8 +46,13 @@ if version != VERSION:
 print("------- HEADER -------")
 print("MAGIC: %s" % hex(magic))
 print("VERSION: %d" % int(version))
+print("TIMESTAMP: %s" % (timestamp))
+print("AUTHOR: %s" % (author))
+print("SECTION COUNT: %d" % (sectioncount))
 
 # We've parsed the magic and version out for you, but you're responsible for
 # the rest of the header and the actual FPFF body. Good luck!
 
 print("-------  BODY  -------")
+
+
