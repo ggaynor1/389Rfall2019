@@ -29,9 +29,9 @@ int main(int argc, char **argv) {
         	RAND_bytes(params.iv, 16);
     	}
 		
-		unsigned char hash_key [2] = {0,0}; //2 key bytes to test
+		unsigned char two_byte_key[2] = {0,0}; //2 key bytes to test
 		unsigned char *test_key; 			//hash is stored in this string
-		int i, j, flag = 0; 				// loop variables
+		int i, j, flag = 0; 				//loop variables
 		int fd; 							//file pointer
 		unsigned char fd_key_hash[16], fd_ctext_hash[16], *ctext_hash, *ptext;
 		int ctext_len = st.st_size - 48, ptext_len;
@@ -44,23 +44,23 @@ int main(int argc, char **argv) {
 		//try possible character combinations until key is found
 		for(i = 0; i < 256; i++) {
 			for(j = 0; j < 256; j++) {
-				test_key = md5_hash(hash_key, 2);
+				test_key = md5_hash(two_byte_key, 2);
 				if(flag == 0) {
 					if(memcmp(test_key, fd_key_hash, 16) == 0) {
 						flag = 1;
 						//printf("%s\n", test_key);
 						//printf("%s\n", hash_key);
-						memcpy(params.key, hash_key, 16);
+						memcpy(params.key, two_byte_key, 16);
 						memcpy(params.key_hash, test_key, 16);
 						break;
 					}
 				}
-				hash_key[1]++;
+				two_byte_key[1]++;
 			}
 			if(flag == 1) {
 				break;
 			}
-			hash_key[0]++;		
+			two_byte_key[0]++;		
 		}
 		free(test_key);
 		
@@ -81,13 +81,6 @@ int main(int argc, char **argv) {
         
         free(ctext_hash);
                 
-        //print param contents to test
-        //printf("%s\n", params.key);
-        //printf("%s\n", params.key_hash);
-        //printf("%s\n", params.iv);
-        //printf("%s\n", params.msg);
-        //printf("%d\n", params.len);
-        //
         ptext_len = aes128_decrypt(&params, &ptext);
         
         printf("----- BEGIN LEDGER -----\n");
