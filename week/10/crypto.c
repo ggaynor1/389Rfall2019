@@ -74,7 +74,9 @@ int aes128_decrypt(struct cipher_params *params, unsigned char **plaintext) {
 
     plaintext_len = len;
 
+	//printf("%s\n", output+len); 
     if (1 != EVP_DecryptFinal_ex(ctx, output+len, &len)) {
+		ERR_print_errors_fp(stderr);
         die("Failed to finalize decryption");
     }
 
