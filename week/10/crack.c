@@ -9,16 +9,43 @@
 #include "crypto.h"
 #include "common.h"
 
+#include <stdlib.h>
+#include <time.h>
+
 #define LEDGER_FILE "ledger.bin"
 #define PERMISSIONS (S_IRUSR | S_IWUSR)
+
+//Random String Generator
+char *randomStr(size_t len) {
+	static char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,.-#'?!";
+	char* randomString = NULL;
+	int n;
+	
+	if(len) {
+		randomString = malloc(sizeof(char) * (len + 1));
+		
+		if(randomString) {
+			for (n = 0; n < len; n++) {
+				int key = rand() % (int)(sizeof(charset) - 1);
+				randomString[n] = charset[key];
+			}
+			
+			randomString[len] = '\0';
+		}
+	}
+	return randomString;
+}
 
 int main(int argc, char **argv) {
 
 	struct cipher_params params;
 	struct stat st;
 	memset(&params, 0, sizeof(struct cipher_params));
+	unsigned char *string;
 	
-    if(argc != 2) {
+	srand(time(NULL));
+	
+    if(argc < 0) {
 		printf("Usage: ./ledger writeup/crack\n");	
 		return 1;
 	} else {
@@ -29,8 +56,8 @@ int main(int argc, char **argv) {
         	RAND_bytes(params.iv, 16);
     	}
 		
-		unsigned char two_byte_key[2] = {0,0}; //2 key bytes to test
-		unsigned char *test_key; 			//hash is stored in this string
+		unsigned char *key, *key_hash;		//hashes is stored in these variables
+		
 		int i, j, flag = 0; 				//loop variables
 		int fd; 							//file pointer
 		unsigned char fd_key_hash[16], fd_ctext_hash[16], *ctext_hash, *ptext;
@@ -41,34 +68,28 @@ int main(int argc, char **argv) {
 		fd = open(LEDGER_FILE, O_RDONLY, PERMISSIONS);
         read(fd, fd_key_hash, 16);
 
-		//try possible character combinations until key is found
-		for(i = 0; i < 256; i++) {
-			for(j = 0; j < 256; j++) {
-				test_key = md5_hash(two_byte_key, 2);
-				if(flag == 0) {
-					if(memcmp(test_key, fd_key_hash, 16) == 0) {
-						flag = 1;
-						//printf("%s\n", test_key);
-						//printf("%s\n", hash_key);
-						memcpy(params.key, two_byte_key, 16);
-						memcpy(params.key_hash, test_key, 16);
-						break;
-					}
-				}
-				two_byte_key[1]++;
+		//On each iteration, we generate random strings of length 16, hash it,
+		//then zero all but the first two bytes and hash again
+		//then compare that to the key hash in the ledger file
+		while(flag != 1) {
+			string = randomStr(16); //generate random string
+			
+			key = md5_hash(string, 16);
+			memset(key+2, 0, 14);
+			key_hash = md5_hash(key, 2);
+			
+			if(memcmp(key_hash, fd_key_hash, 16) == 0) {
+				flag = 1;
+				memcpy(params.key, key, 16);
+				memcpy(params.key_hash, key_hash, 16);
 			}
-			if(flag == 1) {
-				break;
-			}
-			two_byte_key[0]++;		
 		}
-		free(test_key);
-		
+
 		//correct key is found
 		read(fd, fd_ctext_hash, 16);
         read(fd, params.iv, 16);
         
-        params.msg = malloc(ctext_len) - 1;
+        params.msg = malloc(ctext_len);
         params.len = ctext_len;
         read(fd, params.msg, ctext_len);
         
@@ -76,7 +97,7 @@ int main(int argc, char **argv) {
         
         //check ciphertext hash in file = actual hash
         if (memcmp(ctext_hash, fd_ctext_hash, 16) != 0) {
-           printf("invalid ciphertext");
+           die("invalid ciphertext");
         }
         
         free(ctext_hash);
@@ -89,9 +110,17 @@ int main(int argc, char **argv) {
         }
         printf("----- END LEDGER -----\n");
         
+        free(params.msg);
+        params.msg = ptext;
+        params.len = ptext_len;
+        
         close(fd);
+        
 		
 	}
 	
 	return 0;
 }
+
+
+
