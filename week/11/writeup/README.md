@@ -9,7 +9,7 @@ Digital acknowledgement: George Gaynor
 
 
 ## Assignment details
-This assignment has two parts. It is due by 11/28/19 at 11:59PM.
+This assignment has two parts. It is due by 11/27/19 at 11:59PM.
 
 **There will be late penalty of 5% per day late!**
 
